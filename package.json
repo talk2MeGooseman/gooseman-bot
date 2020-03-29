@@ -11,9 +11,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.19.2",
+    "colornames": "1.1.1",
     "comfy.js": "^1.0.15",
     "dotenv": "^8.2.0",
-    "restify": "^8.5.1"
+    "node-hue-api": "4.0.5",
+    "restify": "8.5.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.2"
