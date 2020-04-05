@@ -1,41 +1,12 @@
 require('dotenv').config();
+const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
 const restify = require('restify');
-const axios = require('axios');
 const server = restify.createServer();
 const hueApp = require('./hueApp');
 const colorToHex = require('colornames');
 const theColorAPI = require('./services/theColorAPI');
-
-async function askQnAMaker(message) {
-  // QNA_AUTH
-  const URL = `https://gooseman-bot-qna-maker.azurewebsites.net/qnamaker/knowledgebases/${process.env.KB_ID}/generateAnswer`;
-
-  const response = await axios.post(
-    URL,
-    {
-      isTest: true,
-      question: message,
-      scoreThreshold: 85,
-      top: 1,
-    },
-    {
-      headers: {
-        Authorization: `EndpointKey ${process.env.QNA_AUTH}`,
-      },
-    }
-  );
-
-  const answers = response.data.answers;
-
-  if (answers.length > 0) {
-    const possibleAnswer = answers[0];
-    if (possibleAnswer.score > 0) {
-      return possibleAnswer.answer;
-    }
-  }
-  return '';
-}
+const { askQnAMaker } = require("./services/askQnAMaker");
 
 function convertToHexCode(message) {
   let result = message;
@@ -57,7 +28,6 @@ server.get('/', respond);
 
 server.listen(8080, async function() {
   console.log('%s listening at %s', server.name, server.url);
-  // hueApp.getLight('Hue go 1');
 });
 
 ComfyJS.onChat = async (user, message, flags) => {
@@ -84,28 +54,52 @@ ComfyJS.onChat = async (user, message, flags) => {
 };
 
 ComfyJS.onCommand = async (user, command, message, flags, extra) => {
-  let lightState;
+  try {
+    if (command === 'hue_connect' && flags.broadcaster) {
+      await hueApp.discoverAndCreateUser();
+    } else if (command === 'hue_groups' && flags.broadcaster) {
+      await hueApp.getGroups();
+    } else if (command === 'color') {
+      let requestedColor = convertToHexCode(message);
+      const hsl = await theColorAPI.fetchColor(requestedColor);
 
-  if (command === 'hue_connect' && flags.broadcaster) {
-    await hueApp.discoverAndCreateUser();
-  } else if (command === 'color') {
-    let requestedColor = convertToHexCode(message);
-    const hsl = await theColorAPI.fetchColor(requestedColor);
-    if (hsl) {
-      lightState = hueApp.buildLightState('color', hsl);
+      if (hsl) {
+        const lightState = hueApp.buildStateFor({
+          type: 'light',
+          desiredEvent: command,
+          hslColor: hsl,
+        });
+
+        const officeGroup = await hueApp.getGroupByName('Office');
+        officeGroup.lights.forEach(lightId => {
+          hueApp.setLightState(lightId, lightState);
+        });
+      }
+    } else if (command === 'alert') {
+      const lightState = hueApp.buildStateFor({
+        type: 'light',
+        desiredEvent: command,
+      });
+
+      const officeGroup = await hueApp.getGroupByName('Office');
+      officeGroup.lights.forEach(lightId => {
+        hueApp.setLightState(lightId, lightState);
+      });
+    } else {
+      const lightState = hueApp.buildStateFor({ desiredEvent: command });
+      if (lightState) {
+        const officeGroup = await hueApp.getGroupByName('Office');
+        hueApp.setGroupLightState(officeGroup.id, lightState);
+      }
     }
-  } else {
-    lightState = hueApp.buildLightState(command);
-  }
-
-  if (lightState) {
-    hueApp.setLightState(8, lightState);
+  } catch (error) {
+    console.error('Error happened when running a command:', error);
   }
 };
 
 ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
 
 ComfyJS.onConnected = () => {
-  ComfyJS.Say("I'm Alive Baby!");
+  // ComfyJS.Say("I'm Alive Baby!");
 };
 

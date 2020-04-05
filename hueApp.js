@@ -2,8 +2,6 @@ require('dotenv').config();
 const v3 = require('node-hue-api').v3;
 // LightState fo r interacting with Lights
 const LightState = v3.lightStates.LightState;
-// LightState for interacting with Scene Lights
-const SceneLightState = v3.lightStates.GroupLightState;
 // LightState for interacting with Group Lights
 const GroupLightState = v3.lightStates.GroupLightState;
 const discovery = v3.discovery;
@@ -85,14 +83,45 @@ exports.getLight = async function getLight(name) {
   console.log(light.toStringDetailed());
 };
 
-exports.buildLightState = function buildLightState(desiredState, hslColor) {
-  let state = new LightState().effectNone().transitionInstant();
-  switch (desiredState) {
+exports.getGroups = async function getGroups() {
+  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
+  const allGroups = await api.groups.getAll();
+
+  allGroups.forEach(group => {
+    console.log('Group Info:', group.toStringDetailed());
+  });
+}
+
+/**
+ *
+ *
+ * @param {string} name
+ * @returns { ({ id: number, name: string, lights: string[] }|undefined) }
+ */
+exports.getGroupByName = async function getGroupByName(name) {
+  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
+  const matchedGroups = await api.groups.getGroupByName('Office');
+
+  if (matchedGroups.length === 1) {
+    return matchedGroups[0];
+  } else if (matchedGroups.length > 1) {
+    throw new Error('More then one group found');
+  }
+
+  return undefined;
+}
+
+exports.buildStateFor = function buildLightState({
+  type,
+  desiredEvent,
+  hslColor,
+}) {
+  const stateObject = type === 'light' ? new LightState() : new GroupLightState();
+  let state = stateObject.effectNone().transitionInstant();
+
+  switch (desiredEvent) {
     case 'lights_on':
-      state = state
-        .reset()
-        .on()
-        .brightness(100);
+      state = state.reset().on().brightness(100);
       break;
     case 'color':
       state = state.hsl(hslColor.h, hslColor.s, hslColor.l);
@@ -101,10 +130,7 @@ exports.buildLightState = function buildLightState(desiredState, hslColor) {
       state = state.off();
       break;
     case 'color_loop':
-      state = state
-        .on()
-        .brightness(100)
-        .effectColorLoop();
+      state = state.on().brightness(100).effectColorLoop();
       break;
     case 'alert':
       state = state
@@ -123,6 +149,15 @@ exports.buildLightState = function buildLightState(desiredState, hslColor) {
 exports.setLightState = async function setLightState(lightId, state) {
   const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
   api.lights.setLightState(lightId, state).then(result => {
-    console.log(`Light state change was successful? ${result}`);
+    console.log(`Update Light State: ${result}`);
   });
 };
+
+exports.setGroupLightState = async function setGroupLightState(groupId, groupState) {
+  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
+  api.groups.setGroupState(groupId, groupState)
+    .then(result => {
+      console.log(`Updated Group State: ${result}`);
+    })
+  ;
+}
