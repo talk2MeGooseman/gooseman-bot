@@ -7,6 +7,7 @@ const hueApp = require('./hueApp');
 const colorToHex = require('colornames');
 const theColorAPI = require('./services/theColorAPI');
 const { askQnAMaker } = require("./services/askQnAMaker");
+const { getLUISIntent, TURN_ON, ENTITIES } = require("./services/getLUISIntent");
 
 function convertToHexCode(message) {
   let result = message;
@@ -57,24 +58,23 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   try {
     if (command === 'hue_connect' && flags.broadcaster) {
       await hueApp.discoverAndCreateUser();
+    } else if (command === 'luis') {
+      const intent = await getLUISIntent(message)
+      console.log(intent)
+
+      if(intent.intent === TURN_ON) {
+        const isLightAction = intent.entities.find((e) => e.type === ENTITIES.LIGHT)
+        // Check if type Light
+        if (isLightAction) {
+          const { entity } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
+
+          await changeHueLightsColor(entity);
+        }
+      }
     } else if (command === 'hue_groups' && flags.broadcaster) {
       await hueApp.getGroups();
     } else if (command === 'color') {
-      let requestedColor = convertToHexCode(message);
-      const hsl = await theColorAPI.fetchColor(requestedColor);
-
-      if (hsl) {
-        const lightState = hueApp.buildStateFor({
-          type: 'light',
-          desiredEvent: command,
-          hslColor: hsl,
-        });
-
-        const officeGroup = await hueApp.getGroupByName('Office');
-        officeGroup.lights.forEach(lightId => {
-          hueApp.setLightState(lightId, lightState);
-        });
-      }
+      await changeHueLightsColor(message);
     } else if (command === 'alert') {
       const lightState = hueApp.buildStateFor({
         type: 'light',
@@ -93,7 +93,7 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
     }
   } catch (error) {
-    console.error('Error happened when running a command:', error);
+    console.error('Error happened when running command:',command);
   }
 };
 
@@ -102,4 +102,21 @@ ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
 ComfyJS.onConnected = () => {
   // ComfyJS.Say("I'm Alive Baby!");
 };
+
+async function changeHueLightsColor(color) {
+  let requestedColor = convertToHexCode(color);
+  const hsl = await theColorAPI.fetchColor(requestedColor);
+
+  if (hsl) {
+    const lightState = hueApp.buildStateFor({
+      type: 'light',
+      desiredEvent: 'color',
+      hslColor: hsl,
+    });
+    const officeGroup = await hueApp.getGroupByName('Office');
+    officeGroup.lights.forEach((lightId) => {
+      hueApp.setLightState(lightId, lightState);
+    });
+  }
+}
 
