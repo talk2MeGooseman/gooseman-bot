@@ -6,11 +6,25 @@ const chroma = require('chroma-js');
 const { askQnAMaker } = require("./services/askQnAMaker");
 const { getLUISIntent, INTENTS, ENTITIES } = require("./services/getLUISIntent");
 
+const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
+
+async function changeHueLightsColor(rgbColor) {
+  if (rgbColor) {
+    const lightState = hueApp.buildStateFor({
+      type: 'light',
+      desiredEvent: 'color',
+      rgbColor,
+    });
+    const officeGroup = await hueApp.getGroupByName('Office');
+
+    officeGroup.lights.forEach((lightId) => {
+      hueApp.setLightState(lightId, lightState);
+    });
+  }
+}
+
 ComfyJS.onChat = async (user, message, flags) => {
-  if (
-    user.toLowerCase() === 'gooseman_bot' ||
-    user.toLowerCase() === 'streamelements'
-  ) {
+  if (IGNORED_CHATTERS.includes(user.toLowerCase())) {
     return;
   }
 
@@ -90,24 +104,9 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   }
 };
 
-ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
-
 ComfyJS.onConnected = () => {
   // ComfyJS.Say("I'm Alive Baby!");
 };
 
-async function changeHueLightsColor(rgbColor) {
-  if (rgbColor) {
-    const lightState = hueApp.buildStateFor({
-      type: 'light',
-      desiredEvent: 'color',
-      rgbColor,
-    });
-    const officeGroup = await hueApp.getGroupByName('Office');
-
-    officeGroup.lights.forEach((lightId) => {
-      hueApp.setLightState(lightId, lightState);
-    });
-  }
-}
+ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
 
