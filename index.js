@@ -7,7 +7,7 @@ const hueApp = require('./hueApp');
 const colorToHex = require('colornames');
 const theColorAPI = require('./services/theColorAPI');
 const { askQnAMaker } = require("./services/askQnAMaker");
-const { getLUISIntent, TURN_ON, ENTITIES } = require("./services/getLUISIntent");
+const { getLUISIntent, INTENTS, ENTITIES } = require("./services/getLUISIntent");
 
 function convertToHexCode(message) {
   let result = message;
@@ -59,17 +59,28 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
     if (command === 'hue_connect' && flags.broadcaster) {
       await hueApp.discoverAndCreateUser();
     } else if (command === 'luis') {
+      if(message.length === 0) {
+        ComfyJS.Say('Tell Luis what you would like it to do. Right now Luis can control the color of the lights but more capabilities are to come.');
+        return;
+      }
+
       const intent = await getLUISIntent(message)
       console.log(intent)
 
-      if(intent.intent === TURN_ON) {
+      if(intent.intent === INTENTS.TURN_ON_COLOR) {
         const isLightAction = intent.entities.find((e) => e.type === ENTITIES.LIGHT)
         // Check if type Light
-        if (isLightAction) {
-          const { entity } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
+        if (!isLightAction) return;
 
-          await changeHueLightsColor(entity);
-        }
+        const { entity } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
+        await changeHueLightsColor(entity);
+      } else if(intent.intent === INTENTS.TURN_ON_BLINK) {
+        const lightState = hueApp.buildStateFor({
+          desiredEvent: 'blink',
+        });
+
+        const officeGroup = await hueApp.getGroupByName('Office');
+        hueApp.setGroupLightState(officeGroup.id, lightState);
       }
     } else if (command === 'hue_groups' && flags.broadcaster) {
       await hueApp.getGroups();

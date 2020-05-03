@@ -132,6 +132,10 @@ exports.buildStateFor = function buildLightState({
     case 'color_loop':
       state = state.on().brightness(100).effectColorLoop();
       break;
+    case 'blink':
+      state = state
+        .alertLong();
+      break;
     case 'alert':
       state = state
         .hsl(0, 100, 50) // red
