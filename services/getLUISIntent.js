@@ -7,13 +7,13 @@ const INTENTS = {
 }
 exports.INTENTS = INTENTS;
 
-const ENTITIES = {
+const ENTITY_TYPES = {
   LIGHT: 'Light',
   COLOR: 'Color',
   COLOR_HEX: 'Color.Hex',
   BLINK: 'Blink',
 };
-exports.ENTITIES = ENTITIES;
+exports.ENTITY_TYPES = ENTITY_TYPES;
 
 async function getLUISIntent(query) {
   const encodedQuery = encodeURIComponent(query);

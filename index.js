@@ -3,10 +3,18 @@ const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
 const hueApp = require('./services/hueApp');
 const chroma = require('chroma-js');
+const R = require('ramda');
 const { askQnAMaker } = require("./services/askQnAMaker");
-const { getLUISIntent, INTENTS, ENTITIES } = require("./services/getLUISIntent");
+const { getLUISIntent, INTENTS, ENTITY_TYPES } = require("./services/getLUISIntent");
 
 const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
+
+const hasEntityTypeColorName = R.propEq('type', ENTITY_TYPES.COLOR);
+const hasEntityTypeColorHex = R.propEq('type', ENTITY_TYPES.COLOR_HEX);
+const hasColorType = R.pathSatisfies(entity => R.or(hasEntityTypeColorName(entity), hasEntityTypeColorHex(entity)));
+const findColorEntity = R.find(hasColorType);
+const isColorOnIntent = R.propEq('intent', INTENTS.TURN_ON_COLOR);
+const isBlinkIntent = R.propEq('intent', INTENTS.TURN_ON_BLINK);
 
 async function changeHueLightsColor(rgbColor) {
   if (rgbColor) {
@@ -24,7 +32,7 @@ async function changeHueLightsColor(rgbColor) {
 }
 
 ComfyJS.onChat = async (user, message, flags) => {
-  if (IGNORED_CHATTERS.includes(user.toLowerCase())) {
+  if (R.includes(R.toLower(user), IGNORED_CHATTERS)) {
     return;
   }
 
@@ -56,18 +64,14 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       const intent = await getLUISIntent(message)
       console.log(intent)
 
-      if(intent.intent === INTENTS.TURN_ON_COLOR) {
-        const isLightAction = intent.entities.find((e) => e.type === ENTITIES.LIGHT)
-        // Check if type Light
-        if (!isLightAction) return;
-
-        const { entity: entityColor } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
+      if(isColorOnIntent(intent)) {
+        const { entity: entityColor } = findColorEntity(intent.entities);
 
         if(chroma.valid(entityColor)) {
           const rgbColor = chroma(entityColor).rgb();
           await changeHueLightsColor(rgbColor);
         }
-      } else if(intent.intent === INTENTS.TURN_ON_BLINK) {
+      } else if(isBlinkIntent(intent)) {
         const lightState = hueApp.buildStateFor({
           desiredEvent: 'blink',
         });
