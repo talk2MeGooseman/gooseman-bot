@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.19.2",
-    "colornames": "1.1.1",
+    "chroma-js": "^2.1.0",
     "comfy.js": "^1.0.15",
     "dotenv": "^8.2.0",
     "node-hue-api": "4.0.5",

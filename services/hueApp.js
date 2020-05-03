@@ -114,7 +114,7 @@ exports.getGroupByName = async function getGroupByName(name) {
 exports.buildStateFor = function buildLightState({
   type,
   desiredEvent,
-  hslColor,
+  rgbColor,
 }) {
   const stateObject = type === 'light' ? new LightState() : new GroupLightState();
   let state = stateObject.effectNone().transitionInstant();
@@ -124,7 +124,7 @@ exports.buildStateFor = function buildLightState({
       state = state.reset().on().brightness(100);
       break;
     case 'color':
-      state = state.hsl(hslColor.h, hslColor.s, hslColor.l);
+      state = state.rgb(rgbColor[0], rgbColor[1], rgbColor[2]).brightness(100);
       break;
     case 'lights_off':
       state = state.off();

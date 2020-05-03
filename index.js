@@ -1,35 +1,10 @@
 require('dotenv').config();
 const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
-const restify = require('restify');
-const server = restify.createServer();
-const hueApp = require('./hueApp');
-const colorToHex = require('colornames');
-const theColorAPI = require('./services/theColorAPI');
+const hueApp = require('./services/hueApp');
+const chroma = require('chroma-js');
 const { askQnAMaker } = require("./services/askQnAMaker");
 const { getLUISIntent, INTENTS, ENTITIES } = require("./services/getLUISIntent");
-
-function convertToHexCode(message) {
-  let result = message;
-
-  const hexCode = colorToHex(message);
-  if (hexCode) {
-    result = hexCode.replace('#', '');
-  }
-
-  return result ;
-}
-
-function respond(req, res, next) {
-  res.send('I am Alive!!!');
-  next();
-}
-
-server.get('/', respond);
-
-server.listen(8080, async function() {
-  console.log('%s listening at %s', server.name, server.url);
-});
 
 ComfyJS.onChat = async (user, message, flags) => {
   if (
@@ -72,8 +47,12 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
         // Check if type Light
         if (!isLightAction) return;
 
-        const { entity } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
-        await changeHueLightsColor(entity);
+        const { entity: entityColor } = intent.entities.find((e) => (e.type === ENTITIES.COLOR || e.type === ENTITIES.COLOR_HEX))
+
+        if(chroma.valid(entityColor)) {
+          const rgbColor = chroma(entityColor).rgb();
+          await changeHueLightsColor(rgbColor);
+        }
       } else if(intent.intent === INTENTS.TURN_ON_BLINK) {
         const lightState = hueApp.buildStateFor({
           desiredEvent: 'blink',
@@ -85,7 +64,10 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
     } else if (command === 'hue_groups' && flags.broadcaster) {
       await hueApp.getGroups();
     } else if (command === 'color') {
-      await changeHueLightsColor(message);
+      if(chroma.valid(message)) {
+        const rgbColor = chroma(message).rgb();
+        await changeHueLightsColor(rgbColor);
+      };
     } else if (command === 'alert') {
       const lightState = hueApp.buildStateFor({
         type: 'light',
@@ -114,17 +96,15 @@ ComfyJS.onConnected = () => {
   // ComfyJS.Say("I'm Alive Baby!");
 };
 
-async function changeHueLightsColor(color) {
-  let requestedColor = convertToHexCode(color);
-  const hsl = await theColorAPI.fetchColor(requestedColor);
-
-  if (hsl) {
+async function changeHueLightsColor(rgbColor) {
+  if (rgbColor) {
     const lightState = hueApp.buildStateFor({
       type: 'light',
       desiredEvent: 'color',
-      hslColor: hsl,
+      rgbColor,
     });
     const officeGroup = await hueApp.getGroupByName('Office');
+
     officeGroup.lights.forEach((lightId) => {
       hueApp.setLightState(lightId, lightState);
     });
