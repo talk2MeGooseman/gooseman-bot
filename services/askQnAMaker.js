@@ -13,6 +13,7 @@ async function askQnAMaker(message) {
     },
   });
   const answers = response.data.answers;
+
   if (answers.length > 0) {
     const possibleAnswer = answers[0];
     if (possibleAnswer.score > 0) {

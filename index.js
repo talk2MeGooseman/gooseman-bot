@@ -11,10 +11,28 @@ const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
 
 const hasEntityTypeColorName = R.propEq('type', ENTITY_TYPES.COLOR);
 const hasEntityTypeColorHex = R.propEq('type', ENTITY_TYPES.COLOR_HEX);
+
 const hasColorType = R.pathSatisfies(entity => R.or(hasEntityTypeColorName(entity), hasEntityTypeColorHex(entity)));
+
 const findColorEntity = R.find(hasColorType);
+
 const isColorOnIntent = R.propEq('intent', INTENTS.TURN_ON_COLOR);
 const isBlinkIntent = R.propEq('intent', INTENTS.TURN_ON_BLINK);
+
+const isIgnoredChatter = R.pipe(R.toLower, user => R.includes(user, IGNORED_CHATTERS));
+
+const pipeWhileNotEmpty = R.pipeWith((f, res) => R.isEmpty(res) ? res : f(res));
+
+const changeLightColorPipe = R.pipe((message) => chroma(message).rgb(), changeHueLightsColor);
+
+const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe);
+
+function loopChangeOfficeLightState(lightState) {
+  const officeGroup = hueApp.getGroupByName('Office');
+  officeGroup.lights.forEach((lightId) => {
+    hueApp.setLightState(lightId, lightState);
+  });
+}
 
 async function changeHueLightsColor(rgbColor) {
   if (rgbColor) {
@@ -23,40 +41,39 @@ async function changeHueLightsColor(rgbColor) {
       desiredEvent: 'color',
       rgbColor,
     });
-    const officeGroup = await hueApp.getGroupByName('Office');
 
-    officeGroup.lights.forEach((lightId) => {
-      hueApp.setLightState(lightId, lightState);
-    });
+    loopChangeOfficeLightState(lightState);
   }
 }
 
 ComfyJS.onChat = async (user, message, flags) => {
-  if (R.includes(R.toLower(user), IGNORED_CHATTERS)) {
-    return;
-  }
+  if (isIgnoredChatter(user)) return;
 
-  switch (message) {
-    case 'Kappa':
-      ComfyJS.Say('KappaPride');
-      break;
+  const sayQnaMakerResponse = pipeWhileNotEmpty([
+    askQnAMaker,
+    R.andThen(R.replace('{user}', `${user}`)),
+  ]);
 
-    default:
-      const answer = await askQnAMaker(message);
-      if (answer.length > 0) {
-        const formattedAnswer = answer.replace('{user}', `${user}`);
-        ComfyJS.Say(formattedAnswer);
-      }
-      break;
-  }
+  const onChatMessagePipe = pipeWhileNotEmpty([
+    R.cond([
+      [R.equals('Kappa'), R.always('KappaPride')],
+      [R.T, sayQnaMakerResponse],
+    ]),
+    (x) => Promise.resolve(x),
+    R.andThen(ComfyJS.Say),
+  ]);
+
+  onChatMessagePipe(message)
 };
 
 ComfyJS.onCommand = async (user, command, message, flags, extra) => {
+  if (isIgnoredChatter(user)) return;
+
   try {
-    if (command === 'hue_connect' && flags.broadcaster) {
+    if (R.equals(command, 'hue_connect') && flags.broadcaster) {
       await hueApp.discoverAndCreateUser();
-    } else if (command === 'luis') {
-      if(message.length === 0) {
+    } else if (R.equals(command, 'luis')) {
+      if(R.isEmpty(message)) {
         ComfyJS.Say('Tell Luis what you would like it to do. Right now Luis can control the color of the lights but more capabilities are to come.');
         return;
       }
@@ -66,11 +83,7 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
 
       if(isColorOnIntent(intent)) {
         const { entity: entityColor } = findColorEntity(intent.entities);
-
-        if(chroma.valid(entityColor)) {
-          const rgbColor = chroma(entityColor).rgb();
-          await changeHueLightsColor(rgbColor);
-        }
+        changeLightToColorMaybe(entityColor);
       } else if(isBlinkIntent(intent)) {
         const lightState = hueApp.buildStateFor({
           desiredEvent: 'blink',
@@ -79,23 +92,17 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
         const officeGroup = await hueApp.getGroupByName('Office');
         hueApp.setGroupLightState(officeGroup.id, lightState);
       }
-    } else if (command === 'hue_groups' && flags.broadcaster) {
-      await hueApp.getGroups();
-    } else if (command === 'color') {
-      if(chroma.valid(message)) {
-        const rgbColor = chroma(message).rgb();
-        await changeHueLightsColor(rgbColor);
-      };
-    } else if (command === 'alert') {
+    } else if (R.equals(command, 'hue_groups') && flags.broadcaster) {
+      hueApp.getGroups();
+    } else if (R.equals(command, 'color')) {
+      changeLightToColorMaybe(message);
+    } else if (R.equals(command, 'alert')) {
       const lightState = hueApp.buildStateFor({
         type: 'light',
         desiredEvent: command,
       });
 
-      const officeGroup = await hueApp.getGroupByName('Office');
-      officeGroup.lights.forEach(lightId => {
-        hueApp.setLightState(lightId, lightState);
-      });
+      loopChangeOfficeLightState(lightState);
     } else {
       const lightState = hueApp.buildStateFor({ desiredEvent: command });
       if (lightState) {
@@ -104,13 +111,8 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
     }
   } catch (error) {
-    console.error('Error happened when running command:',command);
+    console.error('Error happened when running command:', command, error);
   }
 };
 
-ComfyJS.onConnected = () => {
-  // ComfyJS.Say("I'm Alive Baby!");
-};
-
 ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
-
