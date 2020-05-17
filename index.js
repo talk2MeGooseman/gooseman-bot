@@ -6,6 +6,7 @@ const chroma = require('chroma-js');
 const R = require('ramda');
 const { askQnAMaker } = require("./services/askQnAMaker");
 const { getLUISIntent, INTENTS, ENTITY_TYPES } = require("./services/getLUISIntent");
+const { queryCurrentWeather, getWeatherEmoji } = require('./services/openWeatherAPI');
 
 const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
 
@@ -72,6 +73,8 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   try {
     if (R.equals(command, 'hue_connect') && flags.broadcaster) {
       await hueApp.discoverAndCreateUser();
+    } else if (R.equals(command, 'hue_groups') && flags.broadcaster) {
+      hueApp.getGroups();
     } else if (R.equals(command, 'luis')) {
       if(R.isEmpty(message)) {
         ComfyJS.Say('Tell Luis what you would like it to do. Right now Luis can control the color of the lights but more capabilities are to come.');
@@ -92,8 +95,16 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
         const officeGroup = await hueApp.getGroupByName('Office');
         hueApp.setGroupLightState(officeGroup.id, lightState);
       }
-    } else if (R.equals(command, 'hue_groups') && flags.broadcaster) {
-      hueApp.getGroups();
+    } else if (R.equals(command, 'weather')) {
+      const {
+        weather,
+        main: { temp, feels_like },
+      } = await queryCurrentWeather(message);
+      const { description, id } = weather[0];
+
+      ComfyJS.Say(
+        `It is ${temp}F and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}F`
+      );
     } else if (R.equals(command, 'color')) {
       changeLightToColorMaybe(message);
     } else if (R.equals(command, 'alert')) {
@@ -111,7 +122,7 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
     }
   } catch (error) {
-    console.error('Error happened when running command:', command, error);
+    console.error('Error happened when running command:', command);
   }
 };
 
