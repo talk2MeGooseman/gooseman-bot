@@ -27,8 +27,8 @@ const changeLightColorPipe = R.pipe((message) => chroma(message).rgb(), changeHu
 
 const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe);
 
-function loopChangeOfficeLightState(lightState) {
-  const officeGroup = hueApp.getGroupByName('Office');
+async function loopChangeOfficeLightState(lightState) {
+  const officeGroup = await hueApp.getGroupByName('Office');
   officeGroup.lights.forEach((lightId) => {
     hueApp.setLightState(lightId, lightState);
   });
