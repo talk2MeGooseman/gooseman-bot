@@ -4,6 +4,7 @@ const axios = require('axios');
 const INTENTS = {
   TURN_ON_COLOR: 'Turn.On.Color',
   TURN_ON_BLINK: 'Turn.On.Blink',
+  TEMP: 'Weather.GetTemperature',
 }
 exports.INTENTS = INTENTS;
 
@@ -12,6 +13,8 @@ const ENTITY_TYPES = {
   COLOR: 'Color',
   COLOR_HEX: 'Color.Hex',
   BLINK: 'Blink',
+  LOCATION: 'Location',
+  CELSIUS: 'Celsius',
 };
 exports.ENTITY_TYPES = ENTITY_TYPES;
 

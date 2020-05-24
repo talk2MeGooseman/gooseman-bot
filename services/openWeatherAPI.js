@@ -59,12 +59,12 @@ exports.getWeatherEmoji = function getWeatherEmoji(weatherID) {
     return defaultEmoji
 }
 
-exports.queryCurrentWeather = async function queryCurrentWeather(query) {
+exports.queryCurrentWeather = async function queryCurrentWeather(query, isCelsius = false) {
   const response = await openWeatherAxios.get('', {
     params: {
       q: query,
       appid: process.env.WEATHER_KEY,
-      units: 'imperial',
+      units: isCelsius ? 'metric' : 'imperial',
     }
   });
 

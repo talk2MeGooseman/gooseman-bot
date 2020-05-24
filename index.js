@@ -10,15 +10,20 @@ const { queryCurrentWeather, getWeatherEmoji } = require('./services/openWeather
 
 const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
 
+const isColorOnIntent = R.propEq('intent', INTENTS.TURN_ON_COLOR);
+const isBlinkIntent = R.propEq('intent', INTENTS.TURN_ON_BLINK);
+const isTemperatureIntent = R.propEq('intent', INTENTS.TEMP);
+
 const hasEntityTypeColorName = R.propEq('type', ENTITY_TYPES.COLOR);
 const hasEntityTypeColorHex = R.propEq('type', ENTITY_TYPES.COLOR_HEX);
+const hasEntityTypeLocation = R.propEq('type', ENTITY_TYPES.LOCATION);
+const hasEntityTypeCelsius = R.propEq('type', ENTITY_TYPES.CELSIUS);
 
 const hasColorType = R.pathSatisfies(entity => R.or(hasEntityTypeColorName(entity), hasEntityTypeColorHex(entity)));
 
 const findColorEntity = R.find(hasColorType);
-
-const isColorOnIntent = R.propEq('intent', INTENTS.TURN_ON_COLOR);
-const isBlinkIntent = R.propEq('intent', INTENTS.TURN_ON_BLINK);
+const findLocationEntity = R.find(hasEntityTypeLocation);
+const findCelsiusEntity = R.find(hasEntityTypeCelsius);
 
 const isIgnoredChatter = R.pipe(R.toLower, user => R.includes(user, IGNORED_CHATTERS));
 
@@ -94,19 +99,12 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
 
         const officeGroup = await hueApp.getGroupByName('Office');
         hueApp.setGroupLightState(officeGroup.id, lightState);
-      }
-    } else if (R.equals(command, 'weather')) {
-      const {
-        weather,
-        main: { temp, feels_like },
-      } = await queryCurrentWeather(message);
-      const { description, id } = weather[0];
+      } else if(isTemperatureIntent(intent)) {
+        const { entity: location } = findLocationEntity(intent.entities);
+        const celsiusRequested = !!findCelsiusEntity(intent.entities);
 
-      ComfyJS.Say(
-        `It is ${temp}F and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}F`
-      );
-    } else if (R.equals(command, 'color')) {
-      changeLightToColorMaybe(message);
+        await getWeather(location, celsiusRequested);
+      }
     } else if (R.equals(command, 'alert')) {
       const lightState = hueApp.buildStateFor({
         type: 'light',
@@ -127,3 +125,22 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
 };
 
 ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
+
+async function getWeather(location, isCelsius = false) {
+  try {
+    const {
+      weather,
+      main: { temp, feels_like }, } = await queryCurrentWeather(location, isCelsius);
+    const { description, id } = weather[0];
+
+    const unit = isCelsius ? 'C' : 'F';
+
+    ComfyJS.Say(
+      `It is ${temp}${unit} and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}${unit}`
+    );
+  } catch (error) {
+    ComfyJS.Say(`Sorry I dont know what the weather is like in ${location}`);
+  }
+
+}
+
