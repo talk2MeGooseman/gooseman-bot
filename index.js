@@ -19,9 +19,8 @@ const hasEntityTypeColorHex = R.propEq('type', ENTITY_TYPES.COLOR_HEX);
 const hasEntityTypeLocation = R.propEq('type', ENTITY_TYPES.LOCATION);
 const hasEntityTypeCelsius = R.propEq('type', ENTITY_TYPES.CELSIUS);
 
-const hasColorType = R.pathSatisfies(entity => R.or(hasEntityTypeColorName(entity), hasEntityTypeColorHex(entity)));
+const findColorEntity = (ent) => (R.find(hasEntityTypeColorHex, ent) || R.find(hasEntityTypeColorName, ent));
 
-const findColorEntity = R.find(hasColorType);
 const findLocationEntity = R.find(hasEntityTypeLocation);
 const findCelsiusEntity = R.find(hasEntityTypeCelsius);
 
@@ -29,7 +28,9 @@ const isIgnoredChatter = R.pipe(R.toLower, user => R.includes(user, IGNORED_CHAT
 
 const pipeWhileNotEmpty = R.pipeWith((f, res) => R.isEmpty(res) ? res : f(res));
 
-const changeLightColorPipe = R.pipe((message) => chroma(message).rgb(), changeHueLightsColor);
+const changeLightColorPipe = R.pipe((message) => {
+  return chroma(message).rgb()
+}, changeHueLightsColor);
 
 const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe);
 
@@ -120,7 +121,7 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
     }
   } catch (error) {
-    console.error('Error happened when running command:', command);
+    console.error('Error happened when running command:', command, error);
   }
 };
 
