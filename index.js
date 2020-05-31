@@ -77,13 +77,15 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   if (isIgnoredChatter(user)) return;
 
   try {
-    if (R.equals(command, 'hue_connect') && flags.broadcaster) {
+    if (R.equals(command, 'commands')) {
+      ComfyJS.Say('Additional commands: !luis, !alert, !controls');
+    } else if (R.equals(command, 'hue_connect') && flags.broadcaster) {
       await hueApp.discoverAndCreateUser();
     } else if (R.equals(command, 'hue_groups') && flags.broadcaster) {
       hueApp.getGroups();
     } else if (R.equals(command, 'luis')) {
       if(R.isEmpty(message)) {
-        ComfyJS.Say('Tell Luis what you would like it to do. Right now Luis can control the color of the lights but more capabilities are to come.');
+        ComfyJS.Say('Tell Luis what you would like it to do. You can control my lights or check the weather in a city.');
         return;
       }
 
@@ -113,12 +115,6 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       });
 
       loopChangeOfficeLightState(lightState);
-    } else {
-      const lightState = hueApp.buildStateFor({ desiredEvent: command });
-      if (lightState) {
-        const officeGroup = await hueApp.getGroupByName('Office');
-        hueApp.setGroupLightState(officeGroup.id, lightState);
-      }
     }
   } catch (error) {
     console.error('Error happened when running command:', command, error);
