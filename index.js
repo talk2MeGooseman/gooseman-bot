@@ -1,5 +1,4 @@
 require('dotenv').config();
-const restify = require('restify');
 const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
 const hueApp = require('./services/hueApp');
@@ -7,7 +6,8 @@ const chroma = require('chroma-js');
 const R = require('ramda');
 const { askQnAMaker } = require("./services/askQnAMaker");
 const { getLUISIntent, INTENTS, ENTITY_TYPES } = require("./services/getLUISIntent");
-const { queryCurrentWeather, getWeatherEmoji } = require('./services/openWeatherAPI');
+const { getWeather } = require('./services/openWeatherAPI');
+const { startServer } = require('./server');
 
 const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements'];
 
@@ -28,15 +28,15 @@ const findCelsiusEntity = R.find(hasEntityTypeCelsius);
 const isIgnoredChatter = R.pipe(R.toLower, user => R.includes(user, IGNORED_CHATTERS));
 
 const pipeWhileNotEmpty = R.pipeWith((f, res) => R.isEmpty(res) ? res : f(res));
+const pipeWhileNotFalsey = R.pipeWith((f, res) => !!res ? f(res) : res);
 
-const changeLightColorPipe = R.pipe((message) => {
-  return chroma(message).rgb()
-}, changeHueLightsColor);
+const changeLightColorPipe = R.pipe((message) => (chroma(message).rgb()), changeHueLightsColor);
 
 const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe);
 
 async function loopChangeOfficeLightState(lightState) {
   const officeGroup = await hueApp.getGroupByName('Office');
+
   officeGroup.lights.forEach((lightId) => {
     hueApp.setLightState(lightId, lightState);
   });
@@ -57,15 +57,10 @@ async function changeHueLightsColor(rgbColor) {
 ComfyJS.onChat = async (user, message, flags) => {
   if (isIgnoredChatter(user)) return;
 
-  const sayQnaMakerResponse = pipeWhileNotEmpty([
-    askQnAMaker,
-    R.andThen(R.replace('{user}', `${user}`)),
-  ]);
-
   const onChatMessagePipe = pipeWhileNotEmpty([
     R.cond([
       [R.equals('Kappa'), R.always('KappaPride')],
-      [R.T, sayQnaMakerResponse],
+      [R.T, pipeWhileNotEmpty([askQnAMaker, R.andThen(R.replace('{user}', `${user}`))])],
     ]),
     (x) => Promise.resolve(x),
     R.andThen(ComfyJS.Say),
@@ -123,35 +118,4 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
 };
 
 ComfyJS.Init('Gooseman_Bot', process.env.OAUTH, 'talk2megooseman');
-
-async function getWeather(location, isCelsius = false) {
-  try {
-    const {
-      weather,
-      main: { temp, feels_like }, } = await queryCurrentWeather(location, isCelsius);
-    const { description, id } = weather[0];
-
-    const unit = isCelsius ? 'C' : 'F';
-
-    ComfyJS.Say(
-      `It is ${temp}${unit} and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}${unit}`
-    );
-  } catch (error) {
-    ComfyJS.Say(`Sorry I dont know what the weather is like in ${location}`);
-  }
-
-}
-
-function respond(req, res, next) {
-  res.send('Honk')
-  return next();
-}
-
-var server = restify.createServer();
-server.get('/', respond);
-
-const port = process.env.PORT || 8080;
-
-server.listen(port, function() {
-  console.log('%s listening at %s', server.name, server.url);
-});
+startServer();

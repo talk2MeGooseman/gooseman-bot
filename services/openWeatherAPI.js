@@ -1,3 +1,4 @@
+const ComfyJS = require('comfy.js');
 require('dotenv').config();
 const axios = require('axios');
 
@@ -6,7 +7,7 @@ const openWeatherAxios = axios.create({
   timeout: 1000,
 });
 
-exports.getWeatherEmoji = function getWeatherEmoji(weatherID) {
+function getWeatherEmoji(weatherID) {
     const thunderstorm = "\u{1F4A8}"    // Code: 200's, 900, 901, 902, 905
     const drizzle = "\u{1F4A7}"         // Code: 300's
     const rain = "\u{02614}"            // Code: 500's
@@ -59,7 +60,7 @@ exports.getWeatherEmoji = function getWeatherEmoji(weatherID) {
     return defaultEmoji
 }
 
-exports.queryCurrentWeather = async function queryCurrentWeather(query, isCelsius = false) {
+async function queryCurrentWeather(query, isCelsius = false) {
   const response = await openWeatherAxios.get('', {
     params: {
       q: query,
@@ -70,3 +71,22 @@ exports.queryCurrentWeather = async function queryCurrentWeather(query, isCelsiu
 
   return response.data
 };
+
+ exports.getWeather = async function getWeather(location, isCelsius = false) {
+  try {
+    const {
+      weather,
+      main: { temp, feels_like }, } = await queryCurrentWeather(location, isCelsius);
+    const { description, id } = weather[0];
+
+    const unit = isCelsius ? 'C' : 'F';
+
+    ComfyJS.Say(
+      `It is ${temp}${unit} and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}${unit}`
+    );
+  } catch (error) {
+    console.log(error);
+    ComfyJS.Say(`Sorry I dont know what the weather is like in ${location}`);
+  }
+
+}
