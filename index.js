@@ -1,4 +1,5 @@
 require('dotenv').config();
+const restify = require('restify');
 const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
 const hueApp = require('./services/hueApp');
@@ -141,3 +142,16 @@ async function getWeather(location, isCelsius = false) {
 
 }
 
+function respond(req, res, next) {
+  res.send('Honk')
+  return next();
+}
+
+var server = restify.createServer();
+server.get('/', respond);
+
+const port = process.env.PORT || 8080;
+
+server.listen(port, function() {
+  console.log('%s listening at %s', server.name, server.url);
+});
