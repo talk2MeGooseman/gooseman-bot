@@ -1,9 +1,0 @@
-{
-  "appService.zipIgnorePattern": [
-    "node_modules{,/**}",
-    ".vscode{,/**}",
-    ".env"
-  ],
-  "appService.defaultWebAppToDeploy": "/subscriptions/1b851e05-97e7-4c2d-a534-e8c0c5bb5cbe/resourceGroups/gooseman-codes/providers/Microsoft.Web/sites/gooseman-bot",
-  "appService.deploySubpath": "."
-}
