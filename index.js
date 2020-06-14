@@ -1,7 +1,7 @@
 require('dotenv').config();
 const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
-const hueApp = require('./services/hueApp');
+const Hue = require('./services/hueApp');
 const chroma = require('chroma-js');
 const R = require('ramda');
 const { askQnAMaker } = require("./services/askQnAMaker");
@@ -33,6 +33,8 @@ const pipeWhileNotFalsey = R.pipeWith((f, res) => !!res ? f(res) : res);
 const changeLightColorPipe = R.pipe((message) => (chroma(message).rgb()), changeHueLightsColor);
 
 const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe);
+
+let hueApp = new Hue.App();
 
 async function loopChangeOfficeLightState(lightState) {
   const officeGroup = await hueApp.getGroupByName('Office');
@@ -75,10 +77,6 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   try {
     if (R.equals(command, 'commands')) {
       ComfyJS.Say('Additional commands: !luis, !alert, !controls');
-    } else if (R.equals(command, 'hue_connect') && flags.broadcaster) {
-      await hueApp.discoverAndCreateUser();
-    } else if (R.equals(command, 'hue_groups') && flags.broadcaster) {
-      hueApp.getGroups();
     } else if (R.equals(command, 'luis')) {
       if(R.isEmpty(message)) {
         ComfyJS.Say('Tell Luis what you would like it to do. You can control my lights or check the weather in a city.');

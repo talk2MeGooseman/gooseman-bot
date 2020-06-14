@@ -9,8 +9,117 @@ const hueApi = v3.api;
 const appName = 'node-hue-api';
 const deviceName = 'example-code';
 
-const USERNAME = process.env['HUE_USER'];
 const IP_ADDRESS = '192.168.0.89';
+
+const remoteBootstrap = v3.api.createRemote(process.env.HUE_CLIENT_ID, process.env.HUE_CLIENT_SECRET);
+
+exports.App = class HueApp {
+  constructor(local = false) {
+    const USERNAME = process.env['HUE_USER'];
+    this.api = null;
+
+    if (local) {
+      this.api = v3.api.createLocal(IP_ADDRESS).connect(USERNAME).then((api) => {
+        this.api = api;
+      });
+    } else {
+      remoteBootstrap.connectWithTokens(process.env.HUE_TOKEN, process.env.HUE_REFRESH_TOKEN, USERNAME)
+        .catch(err => {
+          console.error('Failed to get a remote connection using existing tokens.');
+          console.error(err);
+        })
+        .then(api => {
+          console.log('Successfully connected using the existing OAuth tokens.');
+          this.api = api;
+        });
+    }
+  }
+
+  /**
+   *
+   *
+   * @param {string} name
+   * @returns { ({ id: number, name: string, lights: string[] }|undefined) }
+   */
+  getGroupByName = async function getGroupByName(name) {
+    const matchedGroups = await this.api.groups.getGroupByName('Office');
+
+    if (matchedGroups.length === 1) {
+      return matchedGroups[0];
+    } else if (matchedGroups.length > 1) {
+      throw new Error('More then one group found');
+    }
+
+    return undefined;
+  }
+
+  buildStateFor = function buildLightState({
+    type,
+    desiredEvent,
+    rgbColor,
+  }) {
+    const stateObject = type === 'light' ? new LightState() : new GroupLightState();
+    let state = stateObject.effectNone().transitionInstant();
+
+    switch (desiredEvent) {
+      case 'lights_on':
+        state = state.reset().on().brightness(100);
+        break;
+      case 'color':
+        state = state.on().rgb(rgbColor[0], rgbColor[1], rgbColor[2]).brightness(100);
+        break;
+      case 'lights_off':
+        state = state.off();
+        break;
+      case 'color_loop':
+        state = state.on().brightness(100).effectColorLoop();
+        break;
+      case 'blink':
+        state = state
+          .alertLong();
+        break;
+      case 'alert':
+        state = state
+          .hsl(0, 100, 50) // red
+          .alertLong();
+        break;
+      default:
+        console.log('Invalid State for Hue');
+        return undefined;
+        break;
+    }
+
+    return state;
+  };
+
+  setLightState = async function setLightState(lightId, state) {
+    this.api.lights.setLightState(lightId, state).then(result => {
+      console.log(`Update Light State: ${result}`);
+    });
+  }
+
+  getLight = async function getLight(name) {
+    const light = await api.lights.getLightByName(name);
+    console.log(light.toStringDetailed());
+  }
+
+  getGroups = async function getGroups() {
+    const allGroups = await api.groups.getAll();
+
+    allGroups.forEach(group => {
+      console.log('Group Info:', group.toStringDetailed());
+    });
+  }
+
+  setGroupLightState = async function setGroupLightState(groupId, groupState) {
+    this.api.groups.setGroupState(groupId, groupState)
+      .then(result => {
+        console.log(`Updated Group State: ${result}`);
+      })
+    ;
+  }
+};
+
 
 async function discoverBridge() {
   const discoveryResults = await discovery.nupnpSearch();
@@ -76,92 +185,3 @@ exports.discoverAndCreateUser = async function discoverAndCreateUser() {
     }
   }
 };
-
-exports.getLight = async function getLight(name) {
-  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
-  const light = await api.lights.getLightByName(name);
-  console.log(light.toStringDetailed());
-};
-
-exports.getGroups = async function getGroups() {
-  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
-  const allGroups = await api.groups.getAll();
-
-  allGroups.forEach(group => {
-    console.log('Group Info:', group.toStringDetailed());
-  });
-}
-
-/**
- *
- *
- * @param {string} name
- * @returns { ({ id: number, name: string, lights: string[] }|undefined) }
- */
-exports.getGroupByName = async function getGroupByName(name) {
-  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
-  const matchedGroups = await api.groups.getGroupByName('Office');
-
-  if (matchedGroups.length === 1) {
-    return matchedGroups[0];
-  } else if (matchedGroups.length > 1) {
-    throw new Error('More then one group found');
-  }
-
-  return undefined;
-}
-
-exports.buildStateFor = function buildLightState({
-  type,
-  desiredEvent,
-  rgbColor,
-}) {
-  const stateObject = type === 'light' ? new LightState() : new GroupLightState();
-  let state = stateObject.effectNone().transitionInstant();
-
-  switch (desiredEvent) {
-    case 'lights_on':
-      state = state.reset().on().brightness(100);
-      break;
-    case 'color':
-      state = state.rgb(rgbColor[0], rgbColor[1], rgbColor[2]).brightness(100);
-      break;
-    case 'lights_off':
-      state = state.off();
-      break;
-    case 'color_loop':
-      state = state.on().brightness(100).effectColorLoop();
-      break;
-    case 'blink':
-      state = state
-        .alertLong();
-      break;
-    case 'alert':
-      state = state
-        .hsl(0, 100, 50) // red
-        .alertLong();
-      break;
-    default:
-      console.log('Invalid State for Hue');
-      return undefined;
-      break;
-  }
-
-  return state;
-};
-
-exports.setLightState = async function setLightState(lightId, state) {
-  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
-  api.lights.setLightState(lightId, state).then(result => {
-    console.log(`Update Light State: ${result}`);
-  });
-};
-
-exports.setGroupLightState = async function setGroupLightState(groupId, groupState) {
-  const api = await v3.api.createLocal(IP_ADDRESS).connect(USERNAME);
-  api.groups.setGroupState(groupId, groupState)
-    .then(result => {
-      console.log(`Updated Group State: ${result}`);
-    })
-  ;
-}
