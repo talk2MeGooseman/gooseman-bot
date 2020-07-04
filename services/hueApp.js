@@ -36,6 +36,14 @@ exports.App = class HueApp {
   }
 
   /**
+   * Refresh oauth token for Hue API
+   *
+   */
+  refresh() {
+    this.api.remote.refreshTokens().catch(error => console.log(error.message))
+  }
+
+  /**
    *
    *
    * @param {string} name

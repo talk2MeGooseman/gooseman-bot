@@ -77,6 +77,8 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
   try {
     if (R.equals(command, 'commands')) {
       ComfyJS.Say('Additional commands: !luis, !alert, !controls');
+    } else if (R.equals(command, 'refresh')) {
+      hueApp.refresh()
     } else if (R.equals(command, 'luis')) {
       if(R.isEmpty(message)) {
         ComfyJS.Say('Tell Luis what you would like it to do. You can control my lights or check the weather in a city.');
