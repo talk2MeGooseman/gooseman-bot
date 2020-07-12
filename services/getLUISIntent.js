@@ -1,5 +1,6 @@
 require('dotenv').config();
 const axios = require('axios');
+var debug = require('debug')('app-LUIS');
 
 const INTENTS = {
   TURN_ON_COLOR: 'Turn.On.Color',
@@ -31,16 +32,20 @@ async function getLUISIntent(query) {
         };
       });
 
-      return {
+      const result = {
         query: data.query,
         intent: data.topScoringIntent.intent,
         entities
       };
+      debug('results:', result);
+
+      return result;
     }
   }
   catch (error) {
-    console.error('Failed to perform LUIS Request');
+    debug('Failed to perform LUIS Request:', error.message);
   }
   return undefined;
 }
+
 exports.getLUISIntent = getLUISIntent;

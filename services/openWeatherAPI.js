@@ -1,6 +1,7 @@
 const ComfyJS = require('comfy.js');
 require('dotenv').config();
 const axios = require('axios');
+var debug = require('debug')('app-weather');
 
 const openWeatherAxios = axios.create({
   baseURL: 'https://api.openweathermap.org/data/2.5/weather',
@@ -85,7 +86,7 @@ async function queryCurrentWeather(query, isCelsius = false) {
       `It is ${temp}${unit} and ${description} ${getWeatherEmoji(id)} but feels like ${feels_like}${unit}`
     );
   } catch (error) {
-    console.log(error);
+    debug(error.message);
     ComfyJS.Say(`Sorry I dont know what the weather is like in ${location}`);
   }
 

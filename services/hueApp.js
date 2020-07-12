@@ -1,5 +1,7 @@
 require('dotenv').config();
 const v3 = require('node-hue-api').v3;
+var debug = require('debug')('app-hue');
+
 // LightState fo r interacting with Lights
 const LightState = v3.lightStates.LightState;
 // LightState for interacting with Group Lights
@@ -14,22 +16,25 @@ const IP_ADDRESS = '192.168.0.89';
 const remoteBootstrap = v3.api.createRemote(process.env.HUE_CLIENT_ID, process.env.HUE_CLIENT_SECRET);
 
 exports.App = class HueApp {
-  constructor(local = false) {
+  constructor() {
     const USERNAME = process.env['HUE_USER'];
     this.api = null;
 
-    if (local) {
+    if (process.env['HUE_RUN_LOCAL']) {
       this.api = v3.api.createLocal(IP_ADDRESS).connect(USERNAME).then((api) => {
+        debug('Connected to localhost')
         this.api = api;
+      }).catch(() => {
+        debug('Error connecting')
       });
     } else {
       remoteBootstrap.connectWithTokens(process.env.HUE_TOKEN, process.env.HUE_REFRESH_TOKEN, USERNAME)
         .catch(err => {
-          console.error('Failed to get a remote connection using existing tokens.');
-          console.error(err);
+          debug('Failed to get a remote connection using existing tokens');
+          debug(err);
         })
         .then(api => {
-          console.log('Successfully connected using the existing OAuth tokens.');
+          debug('Successfully connected using the existing OAuth tokens');
           this.api = api;
         });
     }
@@ -40,7 +45,7 @@ exports.App = class HueApp {
    *
    */
   refresh() {
-    this.api.remote.refreshTokens().catch(error => console.log(error.message))
+    this.api.remote.refreshTokens().catch(error => debug(error.message))
   }
 
   /**
@@ -92,7 +97,7 @@ exports.App = class HueApp {
           .alertLong();
         break;
       default:
-        console.log('Invalid State for Hue');
+        debug('Invalid State for Hue');
         return undefined;
         break;
     }
@@ -102,27 +107,27 @@ exports.App = class HueApp {
 
   setLightState = async function setLightState(lightId, state) {
     this.api.lights.setLightState(lightId, state).then(result => {
-      console.log(`Update Light State: ${result}`);
+      debug(`Update Light State: ${result}`);
     });
   }
 
   getLight = async function getLight(name) {
     const light = await api.lights.getLightByName(name);
-    console.log(light.toStringDetailed());
+    debug(light.toStringDetailed());
   }
 
   getGroups = async function getGroups() {
     const allGroups = await api.groups.getAll();
 
     allGroups.forEach(group => {
-      console.log('Group Info:', group.toStringDetailed());
+      debug('Group Info:', group.toStringDetailed());
     });
   }
 
   setGroupLightState = async function setGroupLightState(groupId, groupState) {
     this.api.groups.setGroupState(groupId, groupState)
       .then(result => {
-        console.log(`Updated Group State: ${result}`);
+        debug(`Updated Group State: ${result}`);
       })
     ;
   }
@@ -133,7 +138,7 @@ async function discoverBridge() {
   const discoveryResults = await discovery.nupnpSearch();
 
   if (discoveryResults.length === 0) {
-    console.error('Failed to resolve any Hue Bridges');
+    debug('Failed to resolve any Hue Bridges');
     return null;
   } else {
     // Ignoring that you could have more than one Hue Bridge on a network as this is unlikely in 99.9% of users situations

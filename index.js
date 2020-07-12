@@ -1,4 +1,5 @@
 require('dotenv').config();
+const debug = require('debug')('app-main');
 const v3 = require('node-hue-api').v3;
 const ComfyJS = require('comfy.js');
 const Hue = require('./services/hueApp');
@@ -86,7 +87,6 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
 
       const intent = await getLUISIntent(message)
-      console.log(intent)
 
       if(isColorOnIntent(intent)) {
         const { entity: entityColor } = findColorEntity(intent.entities);
@@ -113,7 +113,7 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       loopChangeOfficeLightState(lightState);
     }
   } catch (error) {
-    console.error('Error happened when running command:', command, error);
+    debug('Error happened when running command:', command);
   }
 };
 
