@@ -26,7 +26,7 @@ const getBestAnswer = R.pipe(
   R.head,
   R.tap(log),
   R.cond([
-    [isValidScore, R.path(['answer'])],
+    [isValidScore, R.prop('answer')],
     [R.T, R.always('')],
   ])
 );
