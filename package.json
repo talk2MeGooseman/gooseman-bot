@@ -4,7 +4,8 @@
   "description": "Chatbot for Talk2MeGooseman's Channel",
   "main": "index.js",
   "scripts": {
-    "dev": "DEBUG=app-* nodemon index.js",
+    "dev": "nodemon index.js",
+    "dev:debug": "DEBUG=app-* nodemon index.js",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.19.2",
+    "chalk": "^4.1.0",
     "chroma-js": "^2.1.0",
     "comfy.js": "^1.1.0",
     "debug": "^4.1.1",
