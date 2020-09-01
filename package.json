@@ -23,6 +23,8 @@
     "restify": "8.5.1"
   },
   "devDependencies": {
+    "eslint": "^7.8.0",
+    "eslint-config-prettier": "^6.11.0",
     "nodemon": "^2.0.2"
   }
 }
