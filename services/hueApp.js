@@ -14,7 +14,7 @@ const hueApi = v3.api;
 const appName = 'node-hue-api';
 const deviceName = 'example-code';
 
-const IP_ADDRESS = '192.168.0.89';
+const IP_ADDRESS = '192.168.1.73';
 
 const remoteBootstrap = v3.api.createRemote(process.env.HUE_CLIENT_ID, process.env.HUE_CLIENT_SECRET);
 
