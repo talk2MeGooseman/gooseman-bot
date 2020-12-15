@@ -1,7 +1,9 @@
-const ComfyJS = require('comfy.js')
-require('dotenv').config()
-const axios = require('axios')
-var debug = require('debug')('app-weather')
+import * as dotenv from 'dotenv'
+import axios from 'axios'
+import debugs from 'debug'
+import ComfyJS from 'comfy.js'
+var debug = debugs('app-weather')
+dotenv.config()
 
 const openWeatherAxios = axios.create({
   baseURL: 'https://api.openweathermap.org/data/2.5/weather',
@@ -71,9 +73,9 @@ async function queryCurrentWeather(query, isCelsius = false) {
   })
 
   return response.data
-};
+}
 
-exports.getWeather = async function getWeather(location, isCelsius = false) {
+export const getWeather = async function getWeather(location, isCelsius = false) {
   try {
     const {
       weather,

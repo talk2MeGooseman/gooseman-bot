@@ -1,6 +1,9 @@
-require('dotenv').config();
-const v3 = require('node-hue-api').v3;
-var debug = require('debug')('app-hue');
+import * as dotenv from 'dotenv'
+import * as hue from 'node-hue-api'
+import debugs from 'debug';
+const debug = debugs('app-hue')
+dotenv.config();
+const v3 = hue.v3;
 
 // LightState fo r interacting with Lights
 const LightState = v3.lightStates.LightState;
@@ -15,7 +18,7 @@ const IP_ADDRESS = '192.168.0.89';
 
 const remoteBootstrap = v3.api.createRemote(process.env.HUE_CLIENT_ID, process.env.HUE_CLIENT_SECRET);
 
-exports.App = class HueApp {
+export const App = class HueApp {
   constructor() {
     const USERNAME = process.env['HUE_USER'];
     this.api = null;
@@ -54,7 +57,7 @@ exports.App = class HueApp {
    * @param {string} name
    * @returns { ({ id: number, name: string, lights: string[] }|undefined) }
    */
-  getGroupByName = async function getGroupByName(name) {
+  async getGroupByName(name) {
     const matchedGroups = await this.api.groups.getGroupByName('Office');
 
     if (matchedGroups.length === 1) {
@@ -66,7 +69,7 @@ exports.App = class HueApp {
     return undefined;
   }
 
-  buildStateFor = function buildLightState({
+  buildLightStateFor({
     type,
     desiredEvent,
     rgbColor,
@@ -105,18 +108,18 @@ exports.App = class HueApp {
     return state;
   };
 
-  setLightState = async function setLightState(lightId, state) {
+  async setLightState(lightId, state) {
     this.api.lights.setLightState(lightId, state).then(result => {
       debug(`Update Light State: ${result}`);
     });
   }
 
-  getLight = async function getLight(name) {
+  async getLight(name) {
     const light = await api.lights.getLightByName(name);
     debug(light.toStringDetailed());
   }
 
-  getGroups = async function getGroups() {
+  async getGroups() {
     const allGroups = await api.groups.getAll();
 
     allGroups.forEach(group => {
@@ -146,7 +149,7 @@ async function discoverBridge() {
   }
 }
 
-exports.discoverAndCreateUser = async function discoverAndCreateUser() {
+export const discoverAndCreateUser = async function discoverAndCreateUser() {
   const ipAddress = await discoverBridge();
 
   // Create an unauthenticated instance of the Hue API so that we can create a new user

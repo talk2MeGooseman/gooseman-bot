@@ -1,49 +1,44 @@
-require('dotenv').config()
-const debug = require('debug')('app-main')
-const ComfyJS = require('comfy.js')
-const chalk = require('chalk')
-const Hue = require('./services/hueApp')
-const chroma = require('chroma-js')
-const R = require('ramda')
-const { askQnAMaker } = require('./services/askQnAMaker')
-const {
-  getLUISIntent,
-  INTENTS,
-  ENTITY_TYPES,
-} = require('./services/getLUISIntent')
-const { getWeather } = require('./services/openWeatherAPI')
-const { startServer } = require('./server')
-const { pipeWhileNotEmpty } = require('./libs/ramda-helpers')
+import * as dotenv from 'dotenv'
+import debugs from 'debug'
+import ComfyJS from 'comfy.js'
+import chalk from 'chalk'
+import { App } from './services/hueApp.js'
+import chroma from 'chroma-js'
+import { propEq, find, pipe, toLower, includes, when, cond, equals, always, T, andThen, replace, isEmpty } from 'ramda'
+import { askQnAMaker } from './services/askQnAMaker.js'
+import { getLUISIntent, ENTITY_TYPES } from './services/getLUISIntent.js'
+import { getWeather } from './services/openWeatherAPI.js'
+import { startServer } from './server.js'
+import { pipeWhileNotEmpty } from './libs/ramda-helpers/index.js'
+import { isColorOnIntent, isBlinkIntent, isTemperatureIntent } from './libs/ramda-helpers/luis.js'
+const debug = debugs('app-main')
+dotenv.config()
 
 const IGNORED_CHATTERS = ['gooseman_bot', 'streamelements']
 
-const isColorOnIntent = R.propEq('intent', INTENTS.TURN_ON_COLOR)
-const isBlinkIntent = R.propEq('intent', INTENTS.TURN_ON_BLINK)
-const isTemperatureIntent = R.propEq('intent', INTENTS.TEMP)
-
-const hasEntityTypeColorName = R.propEq('type', ENTITY_TYPES.COLOR)
-const hasEntityTypeColorHex = R.propEq('type', ENTITY_TYPES.COLOR_HEX)
-const hasEntityTypeLocation = R.propEq('type', ENTITY_TYPES.LOCATION)
-const hasEntityTypeCelsius = R.propEq('type', ENTITY_TYPES.CELSIUS)
+const hasEntityTypeColorName = propEq('type', ENTITY_TYPES.COLOR)
+const hasEntityTypeColorHex = propEq('type', ENTITY_TYPES.COLOR_HEX)
+const hasEntityTypeLocation = propEq('type', ENTITY_TYPES.LOCATION)
+const hasEntityTypeCelsius = propEq('type', ENTITY_TYPES.CELSIUS)
 
 const findColorEntity = (ent) =>
-  R.find(hasEntityTypeColorHex, ent) || R.find(hasEntityTypeColorName, ent)
+  find(hasEntityTypeColorHex, ent) || find(hasEntityTypeColorName, ent)
 
-const findLocationEntity = R.find(hasEntityTypeLocation)
-const findCelsiusEntity = R.find(hasEntityTypeCelsius)
+const findLocationEntity = find(hasEntityTypeLocation)
+const findCelsiusEntity = find(hasEntityTypeCelsius)
 
-const isIgnoredChatter = R.pipe(R.toLower, (user) =>
-  R.includes(user, IGNORED_CHATTERS)
+const isIgnoredChatter = pipe(toLower, (user) =>
+  includes(user, IGNORED_CHATTERS)
 )
 
-const changeLightColorPipe = R.pipe(
+const changeLightColorPipe = pipe(
   (message) => chroma(message).rgb(),
   changeHueLightsColor
 )
 
-const changeLightToColorMaybe = R.when(chroma.valid, changeLightColorPipe)
+const changeLightToColorMaybe = when(chroma.valid, changeLightColorPipe)
 
-let hueApp = new Hue.App()
+let hueApp = new App()
 
 async function loopChangeOfficeLightState(lightState) {
   const officeGroup = await hueApp.getGroupByName('Office')
@@ -55,7 +50,7 @@ async function loopChangeOfficeLightState(lightState) {
 
 async function changeHueLightsColor(rgbColor) {
   if (rgbColor) {
-    const lightState = hueApp.buildStateFor({
+    const lightState = hueApp.buildLightStateFor({
       type: 'light',
       desiredEvent: 'color',
       rgbColor,
@@ -76,33 +71,33 @@ ComfyJS.onChat = async (user, message, flags, self, extra) => {
   console.log('----------')
 
   const onChatMessagePipe = pipeWhileNotEmpty([
-    R.cond([
-      [R.equals('Kappa'), R.always('KappaPride')],
+    cond([
+      [equals('Kappa'), always('KappaPride')],
       [
-        R.T,
+        T,
         pipeWhileNotEmpty([
           askQnAMaker,
-          R.andThen(R.replace('{user}', `${user}`)),
+          andThen(replace('{user}', `${user}`)),
         ]),
       ],
     ]),
     (x) => Promise.resolve(x),
-    R.andThen(ComfyJS.Say),
+    andThen(ComfyJS.Say),
   ])
 
   onChatMessagePipe(message)
 }
 
-ComfyJS.onCommand = async (user, command, message, flags, extra) => {
+ComfyJS.onCommand = async (user, command, message, _flags, _extra) => {
   if (isIgnoredChatter(user)) return
 
   try {
-    if (R.equals(command, 'commands')) {
+    if (equals(command, 'commands')) {
       ComfyJS.Say('Additional commands: !luis, !alert, !controls')
-    } else if (R.equals(command, 'refresh')) {
+    } else if (equals(command, 'refresh')) {
       hueApp.refresh()
-    } else if (R.equals(command, 'luis')) {
-      if (R.isEmpty(message)) {
+    } else if (equals(command, 'luis')) {
+      if (isEmpty(message)) {
         ComfyJS.Say(
           'Tell Luis what you would like it to do. You can control my lights or check the weather in a city.'
         )
@@ -110,12 +105,12 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
       }
 
       const intent = await getLUISIntent(message)
-
+      debug('LUIS Intent:', intent)
       if (isColorOnIntent(intent)) {
         const { entity: entityColor } = findColorEntity(intent.entities)
         changeLightToColorMaybe(entityColor)
       } else if (isBlinkIntent(intent)) {
-        const lightState = hueApp.buildStateFor({
+        const lightState = hueApp.buildLightStateFor({
           desiredEvent: 'blink',
         })
 
@@ -127,8 +122,8 @@ ComfyJS.onCommand = async (user, command, message, flags, extra) => {
 
         await getWeather(location, celsiusRequested)
       }
-    } else if (R.equals(command, 'alert')) {
-      const lightState = hueApp.buildStateFor({
+    } else if (equals(command, 'alert')) {
+      const lightState = hueApp.buildLightStateFor({
         type: 'light',
         desiredEvent: command,
       })

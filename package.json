@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Chatbot for Talk2MeGooseman's Channel",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "dev:debug": "DEBUG=app-* nodemon index.js",
+    "dev:debug": "HUE_RUN_LOCAL=true DEBUG=app-* nodemon index.js",
     "start": "node index.js",
+    "start:local": "HUE_RUN_LOCAL=true node index.js",
+    "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Talk2MeGooseman",

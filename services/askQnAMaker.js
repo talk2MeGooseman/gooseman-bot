@@ -1,7 +1,8 @@
-const axios = require('axios')
-const R = require('ramda')
-const { isNotEmpty } = require('../libs/ramda-helpers')
-const debug = require('debug')('app-QnA')
+import axios from 'axios'
+import * as R from 'ramda'
+import { isNotEmpty }  from '../libs/ramda-helpers/index.js'
+import debugs from 'debug'
+const debug = debugs('app-QnA')
 
 const log = (data) => debug(data)
 
@@ -36,11 +37,10 @@ const processAnswers = R.cond([
   [R.T, R.always('')],
 ])
 
-const getAnswer = R.pipe(
+export const askQnAMaker = R.pipe(
   makeBody,
   postQuestion,
   R.andThen(R.path(['data', 'answers'])),
   R.andThen(processAnswers)
 )
 
-exports.askQnAMaker = getAnswer

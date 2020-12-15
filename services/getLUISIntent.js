@@ -1,16 +1,17 @@
-require('dotenv').config()
-const axios = require('axios')
-const R = require('ramda')
-var debug = require('debug')('app-LUIS')
+import * as dotenv from 'dotenv'
+import axios from 'axios'
+import * as R from 'ramda'
+import debugs from 'debug'
+const debug = debugs('app-LUIS')
+dotenv.config()
 
-const INTENTS = {
+export const INTENTS = {
   TURN_ON_COLOR: 'Turn.On.Color',
   TURN_ON_BLINK: 'Turn.On.Blink',
   TEMP: 'Weather.GetTemperature',
 }
-exports.INTENTS = INTENTS
 
-const ENTITY_TYPES = {
+export const ENTITY_TYPES = {
   LIGHT: 'Light',
   COLOR: 'Color',
   COLOR_HEX: 'Color.Hex',
@@ -18,7 +19,6 @@ const ENTITY_TYPES = {
   LOCATION: 'Location',
   CELSIUS: 'Celsius',
 }
-exports.ENTITY_TYPES = ENTITY_TYPES
 
 const performLuisQuery = R.pipe(
   encodeURIComponent,
@@ -45,7 +45,7 @@ const parseLuisResponse = (data) =>
     }))(data)
   )(data)
 
-async function getLUISIntent(query) {
+export const  getLUISIntent = async (query) => {
   try {
     const data = await performLuisQuery(query)
 
@@ -60,5 +60,3 @@ async function getLUISIntent(query) {
   }
   return undefined
 }
-
-exports.getLUISIntent = getLUISIntent
