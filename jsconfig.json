@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "umd",
+    "target": "es6",
+    "moduleResolution": "node",
+    "strictFunctionTypes": true,
+    "checkJs": true,
+  },
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*"
+  ]
+}
