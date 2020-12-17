@@ -19,10 +19,12 @@ import { askQnAMaker } from './services/askQnAMaker.js'
 import { getLUISIntent } from './services/getLUISIntent.js'
 import { App } from './services/hueApp.js'
 import { getWeather } from './services/openWeatherAPI.js'
+import { sonicPi } from './services/sonic-pi.js'
 const debug = debugs('app-main')
 dotenv.config()
 
 let hueApp = new App()
+sonicPi.initUdpPort()
 
 const displayUserName = (metadata) =>
   chalk.hex(metadata.userColor).bold(metadata.displayName)
@@ -94,8 +96,15 @@ ComfyJS.onCommand = async (user, command, message, _flags, _extra) => {
       })
 
       loopChangeOfficeLightState(lightState)
+    } else if (equals(command, 'note')) {
+      sonicPi.sendUDPMessage('/twitchchat', message)
+    } else if (equals(command, 'playback')) {
+      sonicPi.sendUDPMessage('/twitchmusic')
     }
   } catch (error) {
+    if (equals(command, 'luis')) {
+      ComfyJS.Say('Sorry about that but can you ask me in the form of a question? I can change the color of the lights, make them blink, or look up the weather.')
+    }
     debug('Error happened when running command:', command)
   }
 }

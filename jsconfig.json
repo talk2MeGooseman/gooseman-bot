@@ -3,8 +3,7 @@
     "module": "umd",
     "target": "es6",
     "moduleResolution": "node",
-    "strictFunctionTypes": true,
-    "checkJs": true,
+    "strictFunctionTypes": true
   },
   "exclude": [
     "node_modules",
