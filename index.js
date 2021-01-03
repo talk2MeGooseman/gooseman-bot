@@ -15,10 +15,10 @@ import {
 import { isIgnoredChatter } from './libs/ramda-helpers/comfy.js'
 import { changeLightToColorMaybe, loopChangeOfficeLightState } from './libs/ramda-helpers/hue.js'
 import { startServer } from './server.js'
-import { askQnAMaker } from './services/askQnAMaker.js'
-import { getLUISIntent } from './services/getLUISIntent.js'
-import { App } from './services/hueApp.js'
-import { getWeather } from './services/openWeatherAPI.js'
+import { askQnAMaker } from './services/ask-qna-maker.js'
+import { getLUISIntent } from './services/get-luis-intent.js'
+import { App } from './services/hue-app.js'
+import { getWeather } from './services/open-weather-api.js'
 import { sonicPi } from './services/sonic-pi.js'
 const debug = debugs('app-main')
 dotenv.config()

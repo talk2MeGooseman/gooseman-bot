@@ -1,5 +1,5 @@
 import { propEq, find } from 'ramda'
-import { INTENTS, ENTITY_TYPES } from '../../services/getLUISIntent.js'
+import { INTENTS, ENTITY_TYPES } from '../../services/get-luis-intent.js'
 
 export const isColorOnIntent = propEq('intent', INTENTS.TURN_ON_COLOR)
 export const isBlinkIntent = propEq('intent', INTENTS.TURN_ON_BLINK)
