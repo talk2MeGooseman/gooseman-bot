@@ -2,8 +2,7 @@ import chalk from 'chalk'
 import ComfyJS from 'comfy.js'
 import debugs from 'debug'
 import * as dotenv from 'dotenv'
-import { always, andThen, cond, equals, isEmpty, replace, T } from 'ramda'
-import { pipeWhileNotEmpty } from './libs/ramda-helpers/index.js'
+import { equals, isEmpty } from 'ramda'
 import {
   isBlinkIntent,
   isColorOnIntent,
@@ -15,7 +14,6 @@ import {
 import { isIgnoredChatter, onChat } from './libs/ramda-helpers/comfy.js'
 import { changeLightToColorMaybe, loopChangeOfficeLightState } from './libs/ramda-helpers/hue.js'
 import { startServer } from './server.js'
-import { askQnAMaker } from './services/ask-qna-maker.js'
 import { getLUISIntent } from './services/get-luis-intent.js'
 import { App } from './services/hue-app.js'
 import { getWeather } from './services/open-weather-api.js'
@@ -37,7 +35,7 @@ ComfyJS.onChat = async (user, message, flags, self, extra) => {
   console.log(formatChatMessage(message, extra))
   console.log('----------')
 
-  onChat(user)(message)
+  onChat(user, message)
 }
 
 ComfyJS.onCommand = async (user, command, message, _flags, _extra) => {
