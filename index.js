@@ -12,7 +12,7 @@ import {
   findCelsiusEntity,
   findLocationEntity,
 } from './libs/ramda-helpers/luis.js'
-import { isIgnoredChatter } from './libs/ramda-helpers/comfy.js'
+import { isIgnoredChatter, onChat } from './libs/ramda-helpers/comfy.js'
 import { changeLightToColorMaybe, loopChangeOfficeLightState } from './libs/ramda-helpers/hue.js'
 import { startServer } from './server.js'
 import { askQnAMaker } from './services/ask-qna-maker.js'
@@ -37,22 +37,7 @@ ComfyJS.onChat = async (user, message, flags, self, extra) => {
   console.log(formatChatMessage(message, extra))
   console.log('----------')
 
-  const onChatMessagePipe = pipeWhileNotEmpty([
-    cond([
-      [equals('Kappa'), always('KappaPride')],
-      [
-        T,
-        pipeWhileNotEmpty([
-          askQnAMaker,
-          andThen(replace('{user}', `${user}`)),
-        ]),
-      ],
-    ]),
-    (x) => Promise.resolve(x),
-    andThen(ComfyJS.Say),
-  ])
-
-  onChatMessagePipe(message)
+  onChat(user)(message)
 }
 
 ComfyJS.onCommand = async (user, command, message, _flags, _extra) => {
