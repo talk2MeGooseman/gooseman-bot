@@ -45,7 +45,20 @@ const parseLuisResponse = (data) =>
     }))(data)
   )(data)
 
-export const  getLUISIntent = async (query) => {
+/**
+ * @typedef {{
+ *   type: string,
+ *   entity: string,
+ * }} Entity
+ */
+
+/**
+ * Does a request to Azure LUIS to fetch the intent
+ *
+ * @param {string} query
+ * @returns {{ query: string, intent: string, entities: Entity[] }}
+ */
+export const getLUISIntent = async (query) => {
   try {
     const data = await performLuisQuery(query)
 

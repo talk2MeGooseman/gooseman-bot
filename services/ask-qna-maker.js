@@ -6,6 +6,8 @@ const debug = debugs('app-QnA')
 
 const log = (data) => debug(data)
 
+const emptyResponse = () => ({ data: { answers: [] } })
+
 const URL = `https://gooseman-bot-qna-maker.azurewebsites.net/qnamaker/knowledgebases/${process.env.KB_ID}/generateAnswer`
 const makeBody = (question) => ({
   question,
@@ -40,6 +42,7 @@ const processAnswers = R.cond([
 export const askQnAMaker = R.pipe(
   makeBody,
   postQuestion,
+  R.otherwise(emptyResponse),
   R.andThen(R.path(['data', 'answers'])),
   R.andThen(processAnswers)
 )
