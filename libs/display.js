@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 
-const displayUserName = (metadata) =>
-  chalk.hex(metadata.userColor).bold(metadata.displayName)
+const displayUserName = ({ userColor, displayName }) =>
+  chalk.hex(userColor).bold(displayName)
 
 export const formatChatMessage = (message, metadata) =>
   `${displayUserName(metadata)}: ${message}`

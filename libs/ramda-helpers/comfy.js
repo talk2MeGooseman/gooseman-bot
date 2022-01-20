@@ -11,13 +11,15 @@ import {
   tap,
   thunkify, toLower,
   prop,
+  isNil,
 } from 'ramda'
 import { askQnAMaker } from '../../services/ask-qna-maker.js'
 import { getLUISIntent } from '../../services/get-luis-intent.js'
 import { getWeather } from '../../services/open-weather-api.js'
+import { sonicPi } from '../../services/sonic-pi.js'
 import { IGNORED_CHATTERS } from '../constants.js'
 import { formatChatMessage } from '../display.js'
-import { changeLightToColorMaybe, loopChangeOfficeLightState } from './hue.js'
+import { changeLightToColorMaybe, lightAlert} from './hue.js'
 import { pipeWhileNotEmpty, pipeWhileNotEmptyOrFalse, pipeWhileNotFalsey } from './index.js'
 import {
   findCelsiusEntity, findColorEntity,
@@ -32,6 +34,8 @@ export const isIgnoredChatter = pipe(
   toLower,
   (user) => includes(user, IGNORED_CHATTERS)
 )
+
+sonicPi.initUdpPort()
 
 export const onChat = ({ user, message, extra }) => {
   if(isIgnoredChatter(user)) {
@@ -74,6 +78,14 @@ export const onCommand = async ({ user, command, message, hueApp }) => {
       onLUISCommand(hueApp, message)
     } else if (equals(command, 'alert')) {
       lightAlert(hueApp, command)
+    } else if (equals(command, 'note')) {
+      if(isEmpty(message)) {
+        ComfyJS.Say('Please provide the note you would like to play, the cutoff, and how long to sustain the note. ie. !note 50, 50, 5')
+      } else {
+        sonicPi.sendUDPMessage('/twitchchat', message)
+      }
+    } else if (equals(command,  'playback')) {
+      sonicPi.sendUDPMessage('/twitchmusic')
     }
   } catch (error) {
     debug('Error happened when running command:', command)
@@ -85,20 +97,12 @@ const onLUISCommand = (hueApp, message) => {
     getLUISIntent,
     andThen(tap((intent) => debug('LUIS Intent:', intent))),
     andThen(cond([
+      [isNil, always()],
       [isColorOnIntent, curry(changeLightColor)(hueApp)],
       [isBlinkIntent, thunkify(blinkLights)(hueApp)],
       [isTemperatureIntent, getTemperature],
     ]))
   ])(message)
-}
-
-function lightAlert(hueApp, command) {
-  const lightState = hueApp.buildLightStateFor({
-    type: 'light',
-    desiredEvent: command,
-  })
-
-  loopChangeOfficeLightState(lightState)
 }
 
 async function getTemperature(intent) {

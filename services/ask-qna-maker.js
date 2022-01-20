@@ -1,8 +1,10 @@
+import * as dotenv from 'dotenv'
 import axios from 'axios'
 import * as R from 'ramda'
 import { isNotEmpty }  from '../libs/ramda-helpers/index.js'
 import debugs from 'debug'
 const debug = debugs('app-QnA')
+dotenv.config()
 
 const log = (data) => debug(data)
 
