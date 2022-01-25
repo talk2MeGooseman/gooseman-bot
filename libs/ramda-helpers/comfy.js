@@ -3,29 +3,18 @@ import debugs from 'debug'
 import {
   always,
   andThen,
-  cond,
-  curry, equals, includes,
-  isEmpty, pipe,
-  replace,
-  T,
-  tap,
-  thunkify, toLower,
-  prop,
-  isNil,
+  cond, equals, includes,
+  isEmpty, pipe, replace,
+  T, toLower
 } from 'ramda'
 import { askQnAMaker } from '../../services/ask-qna-maker.js'
-import { getLUISIntent } from '../../services/get-luis-intent.js'
-import { getWeather } from '../../services/open-weather-api.js'
 import { sonicPi } from '../../services/sonic-pi.js'
 import { IGNORED_CHATTERS } from '../constants.js'
 import { formatChatMessage } from '../display.js'
-import { changeLightToColorMaybe, lightAlert} from './hue.js'
-import { pipeWhileNotEmpty, pipeWhileNotEmptyOrFalse, pipeWhileNotFalsey } from './index.js'
+import { lightAlert } from './hue.js'
+import { pipeWhileNotEmpty, pipeWhileNotEmptyOrFalse } from './index.js'
 import {
-  findCelsiusEntity, findColorEntity,
-  findLocationEntity, isBlinkIntent,
-  isColorOnIntent,
-  isTemperatureIntent
+  onLUISCommand
 } from './luis.js'
 
 const debug = debugs('app-comfy')
@@ -92,38 +81,4 @@ export const onCommand = async ({ user, command, message, hueApp }) => {
   }
 }
 
-const onLUISCommand = (hueApp, message) => {
-  return pipeWhileNotFalsey([
-    getLUISIntent,
-    andThen(tap((intent) => debug('LUIS Intent:', intent))),
-    andThen(cond([
-      [isNil, always()],
-      [isColorOnIntent, curry(changeLightColor)(hueApp)],
-      [isBlinkIntent, thunkify(blinkLights)(hueApp)],
-      [isTemperatureIntent, getTemperature],
-    ]))
-  ])(message)
-}
-
-async function getTemperature(intent) {
-  const { entity: location } = findLocationEntity(intent.entities)
-  const celsiusRequested = !!findCelsiusEntity(intent.entities)
-  await getWeather(location, celsiusRequested)
-}
-
-async function blinkLights(hueApp) {
-  const lightState = hueApp.buildLightStateFor({
-    desiredEvent: 'blink',
-  })
-
-  const officeGroup = await hueApp.getGroupByName('Office')
-  hueApp.setGroupLightState(officeGroup.id, lightState)
-}
-
-const changeLightColor = (hueApp) => pipe(
-  prop('entities'),
-  findColorEntity,
-  prop('entity'),
-  curry(changeLightToColorMaybe)(hueApp),
-)
 

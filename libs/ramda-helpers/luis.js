@@ -1,5 +1,16 @@
-import { propEq, find } from 'ramda'
-import { INTENTS, ENTITY_TYPES } from '../../services/get-luis-intent.js'
+import {
+  always,
+  andThen,
+  cond,
+  curry, find, isNil, propEq, tap,
+  thunkify
+} from 'ramda'
+import { ENTITY_TYPES, getLUISIntent, INTENTS } from '../../services/get-luis-intent.js'
+import { blinkLights, changeLightColor } from './hue.js'
+import { pipeWhileNotFalsey } from './index.js'
+import { getTemperature } from './weather.js'
+import debugs from 'debug'
+const debug = debugs('app-luis')
 
 export const isColorOnIntent = propEq('intent', INTENTS.TURN_ON_COLOR)
 export const isBlinkIntent = propEq('intent', INTENTS.TURN_ON_BLINK)
@@ -16,3 +27,7 @@ export const findColorEntity = (ent) =>
 
 export const findLocationEntity = find(hasEntityTypeLocation)
 export const findCelsiusEntity = find(hasEntityTypeCelsius)
+
+export const onLUISCommand = (hueApp, message) => {
+  return pipeWhileNotFalsey([getLUISIntent, andThen(tap(intent => debug('LUIS Intent:', intent))), andThen(cond([[isNil, always()], [isColorOnIntent, curry(changeLightColor)(hueApp)], [isBlinkIntent, thunkify(blinkLights)(hueApp)], [isTemperatureIntent, getTemperature]]))])(message)
+}
