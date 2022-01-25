@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import axios from 'axios'
 import * as R from 'ramda'
-import { isNotEmpty }  from '../libs/ramda-helpers/index.js'
+import { isNotEmpty } from '../libs/ramda-helpers/index.js'
 import debugs from 'debug'
 const debug = debugs('app-QnA')
 
@@ -29,16 +29,10 @@ const isValidScore = (answerObject) => R.gt(answerObject.score, 0)
 const getBestAnswer = R.pipe(
   R.head,
   R.tap(log),
-  R.cond([
-    [isValidScore, R.prop('answer')],
-    [R.T, R.always('')],
-  ])
+  R.ifElse(isValidScore, R.prop('answer'), R.always(''))
 )
 
-const processAnswers = R.cond([
-  [isNotEmpty, getBestAnswer],
-  [R.T, R.always('')],
-])
+const processAnswers = R.ifElse(isNotEmpty, getBestAnswer, R.always(''))
 
 export const askQnAMaker = R.pipe(
   makeBody,
@@ -47,4 +41,3 @@ export const askQnAMaker = R.pipe(
   R.andThen(R.path(['data', 'answers'])),
   R.andThen(processAnswers)
 )
-

@@ -43,8 +43,7 @@ export const sonicPi = {
         args,
       },
       'localhost',
-      4560, // Port Sonic Pi listens to
+      4560 // Port Sonic Pi listens to
     )
-  }
+  },
 }
-

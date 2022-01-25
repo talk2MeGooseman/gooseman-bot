@@ -16,7 +16,10 @@ const deviceName = 'example-code'
 
 const IP_ADDRESS = '192.168.1.73'
 
-const remoteBootstrap = v3.api.createRemote(process.env.HUE_CLIENT_ID, process.env.HUE_CLIENT_SECRET)
+const remoteBootstrap = v3.api.createRemote(
+  process.env.HUE_CLIENT_ID,
+  process.env.HUE_CLIENT_SECRET
+)
 
 export const App = class HueApp {
   constructor() {
@@ -24,19 +27,28 @@ export const App = class HueApp {
     this.api = null
 
     if (process.env['HUE_RUN_LOCAL']) {
-      this.api = v3.api.createLocal(IP_ADDRESS).connect(USERNAME).then((api) => {
-        debug('Connected to localhost')
-        this.api = api
-      }).catch(() => {
-        debug('Error connecting')
-      })
+      this.api = v3.api
+        .createLocal(IP_ADDRESS)
+        .connect(USERNAME)
+        .then((api) => {
+          debug('Connected to localhost')
+          this.api = api
+        })
+        .catch(() => {
+          debug('Error connecting')
+        })
     } else {
-      remoteBootstrap.connectWithTokens(process.env.HUE_TOKEN, process.env.HUE_REFRESH_TOKEN, USERNAME)
-        .catch(err => {
+      remoteBootstrap
+        .connectWithTokens(
+          process.env.HUE_TOKEN,
+          process.env.HUE_REFRESH_TOKEN,
+          USERNAME
+        )
+        .catch((err) => {
           debug('Failed to get a remote connection using existing tokens')
           debug(err)
         })
-        .then(api => {
+        .then((api) => {
           debug('Successfully connected using the existing OAuth tokens')
           this.api = api
         })
@@ -48,7 +60,7 @@ export const App = class HueApp {
    *
    */
   refresh() {
-    this.api.remote.refreshTokens().catch(error => debug(error.message))
+    this.api.remote.refreshTokens().catch((error) => debug(error.message))
   }
 
   /**
@@ -69,46 +81,45 @@ export const App = class HueApp {
     return undefined
   }
 
-  buildLightStateFor({
-    type,
-    desiredEvent,
-    rgbColor,
-  }) {
-    const stateObject = type === 'light' ? new LightState() : new GroupLightState()
+  buildLightStateFor({ type, desiredEvent, rgbColor }) {
+    const stateObject =
+      type === 'light' ? new LightState() : new GroupLightState()
     let state = stateObject.effectNone().transitionInstant()
 
     switch (desiredEvent) {
-    case 'lights_on':
-      state = state.reset().on().brightness(100)
-      break
-    case 'color':
-      state = state.on().rgb(rgbColor[0], rgbColor[1], rgbColor[2]).brightness(100)
-      break
-    case 'lights_off':
-      state = state.off()
-      break
-    case 'color_loop':
-      state = state.on().brightness(100).effectColorLoop()
-      break
-    case 'blink':
-      state = state
-        .alertLong()
-      break
-    case 'alert':
-      state = state
-        .hsl(0, 100, 50) // red
-        .alertLong()
-      break
-    default:
-      debug('Invalid State for Hue')
-      return undefined
+      case 'lights_on':
+        state = state.reset().on().brightness(100)
+        break
+      case 'color':
+        state = state
+          .on()
+          .rgb(rgbColor[0], rgbColor[1], rgbColor[2])
+          .brightness(100)
+        break
+      case 'lights_off':
+        state = state.off()
+        break
+      case 'color_loop':
+        state = state.on().brightness(100).effectColorLoop()
+        break
+      case 'blink':
+        state = state.alertLong()
+        break
+      case 'alert':
+        state = state
+          .hsl(0, 100, 50) // red
+          .alertLong()
+        break
+      default:
+        debug('Invalid State for Hue')
+        return undefined
     }
 
     return state
   }
 
   async setLightState(lightId, state) {
-    this.api.lights.setLightState(lightId, state).then(result => {
+    this.api.lights.setLightState(lightId, state).then((result) => {
       debug(`Update Light State: ${result}`)
     })
   }
@@ -121,20 +132,17 @@ export const App = class HueApp {
   async getGroups() {
     const allGroups = await this.api.groups.getAll()
 
-    allGroups.forEach(group => {
+    allGroups.forEach((group) => {
       debug('Group Info:', group.toStringDetailed())
     })
   }
 
   async setGroupLightState(groupId, groupState) {
-    this.api.groups.setGroupState(groupId, groupState)
-      .then(result => {
-        debug(`Updated Group State: ${result}`)
-      })
-
+    this.api.groups.setGroupState(groupId, groupState).then((result) => {
+      debug(`Updated Group State: ${result}`)
+    })
   }
 }
-
 
 async function discoverBridge() {
   const discoveryResults = await discovery.nupnpSearch()
@@ -162,10 +170,7 @@ export const discoverAndCreateUser = async function discoverAndCreateUser() {
 
   let createdUser
   try {
-    createdUser = await unauthenticatedApi.users.createUser(
-      appName,
-      deviceName
-    )
+    createdUser = await unauthenticatedApi.users.createUser(appName, deviceName)
     console.log(
       '*******************************************************************************\n'
     )

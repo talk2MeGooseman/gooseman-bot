@@ -3,17 +3,13 @@
         "es2021": true,
         "node": true
     },
-    "extends": ["eslint:recommended", "plugin:ramda/recommended"],
+    "extends": ["eslint:recommended", "plugin:ramda/recommended", "plugin:prettier/recommended"],
     "parserOptions": {
         "sourceType": "module",
         "ecmaVersion": 12
     },
     "plugins": ["ramda"],
     "rules": {
-        "indent": [
-            "error",
-            2
-        ],
         "linebreak-style": [
             "error",
             "unix"

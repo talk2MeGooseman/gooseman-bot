@@ -1,11 +1,17 @@
 import ComfyJS from 'comfy.js'
 import debugs from 'debug'
+import { ifElse } from 'ramda'
 import {
   always,
   andThen,
-  cond, equals, includes,
-  isEmpty, pipe, replace,
-  T, toLower
+  cond,
+  equals,
+  includes,
+  isEmpty,
+  pipe,
+  replace,
+  T,
+  toLower,
 } from 'ramda'
 import { askQnAMaker } from '../../services/ask-qna-maker.js'
 import { sonicPi } from '../../services/sonic-pi.js'
@@ -13,23 +19,17 @@ import { IGNORED_CHATTERS } from '../constants.js'
 import { formatChatMessage } from '../display.js'
 import { lightAlert } from './hue.js'
 import { pipeWhileNotEmpty, pipeWhileNotEmptyOrFalse } from './index.js'
-import {
-  onLUISCommand
-} from './luis.js'
+import { onLUISCommand } from './luis.js'
 
 const debug = debugs('app-comfy')
-
-export const isIgnoredChatter = pipe(
-  toLower,
-  (user) => includes(user, IGNORED_CHATTERS)
-)
-
 sonicPi.initUdpPort()
 
+export const isIgnoredChatter = pipe(toLower, (user) =>
+  includes(user, IGNORED_CHATTERS)
+)
+
 export const onChat = ({ user, message, extra }) => {
-  if(isIgnoredChatter(user)) {
-    return
-  }
+  if (isIgnoredChatter(user)) return
 
   console.log(formatChatMessage(message, extra))
   console.log('----------')
@@ -48,7 +48,6 @@ export const onChat = ({ user, message, extra }) => {
   ])(message)
 }
 
-
 export const onCommand = async ({ user, command, message, hueApp }) => {
   if (isIgnoredChatter(user)) return
 
@@ -58,28 +57,28 @@ export const onCommand = async ({ user, command, message, hueApp }) => {
     } else if (equals(command, 'refresh')) {
       // hueApp.refresh()
     } else if (equals(command, 'luis')) {
-      if (isEmpty(message)) {
-        ComfyJS.Say(
-          'Tell Luis what you would like it to do. You can control my lights or check the weather in a city.'
-        )
-        return
-      }
-
-      onLUISCommand(hueApp, message)
+      ifElse(
+        isEmpty,
+        () =>
+          ComfyJS.Say(
+            'Tell Luis what you would like them to do. You can control my lights or check the weather in a city.'
+          ),
+        onLUISCommand(hueApp)
+      )(message)
     } else if (equals(command, 'alert')) {
       lightAlert(hueApp, command)
     } else if (equals(command, 'note')) {
-      if(isEmpty(message)) {
-        ComfyJS.Say('Please provide the note you would like to play, the cutoff, and how long to sustain the note. ie. !note 50, 50, 5')
+      if (isEmpty(message)) {
+        ComfyJS.Say(
+          'Please provide the note you would like to play, the cutoff, and how long to sustain the note. ie. !note 50, 50, 5'
+        )
       } else {
         sonicPi.sendUDPMessage('/twitchchat', message)
       }
-    } else if (equals(command,  'playback')) {
+    } else if (equals(command, 'playback')) {
       sonicPi.sendUDPMessage('/twitchmusic')
     }
   } catch (error) {
     debug('Error happened when running command:', command)
   }
 }
-
-

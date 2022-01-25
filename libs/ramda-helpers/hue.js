@@ -1,8 +1,6 @@
 import chroma from 'chroma-js'
 import { curry, map, pipe, prop, when } from 'ramda'
-import {
-  findColorEntity
-} from './luis.js'
+import { findColorEntity } from './luis.js'
 
 export const loopChangeOfficeLightState = curry(async (hueApp, lightState) => {
   const officeGroup = await hueApp.getGroupByName('Office')
@@ -13,18 +11,16 @@ export const loopChangeOfficeLightState = curry(async (hueApp, lightState) => {
   )(officeGroup)
 })
 
-const curriedChangeHueLightsColor = curry(async function(hueApp, rgbColor) {
+const curriedChangeHueLightsColor = curry(async function (hueApp, rgbColor) {
   if (rgbColor) {
     pipe(
       hueApp.buildLightStateFor,
       loopChangeOfficeLightState(hueApp)
-    )(
-      {
-        type: 'light',
-        desiredEvent: 'color',
-        rgbColor,
-      }
-    )
+    )({
+      type: 'light',
+      desiredEvent: 'color',
+      rgbColor,
+    })
   }
 })
 
@@ -44,16 +40,22 @@ export function lightAlert(hueApp, command) {
     loopChangeOfficeLightState(hueApp)
   )({
     type: 'light',
-    desiredEvent: command
+    desiredEvent: command,
   })
 }
 
 export async function blinkLights(hueApp) {
   const lightState = hueApp.buildLightStateFor({
-    desiredEvent: 'blink'
+    desiredEvent: 'blink',
   })
   const officeGroup = await hueApp.getGroupByName('Office')
   hueApp.setGroupLightState(officeGroup.id, lightState)
 }
 
-export const changeLightColor = hueApp => pipe(prop('entities'), findColorEntity, prop('entity'), curry(changeLightToColorMaybe)(hueApp))
+export const changeLightColor = (hueApp) =>
+  pipe(
+    prop('entities'),
+    findColorEntity,
+    prop('entity'),
+    curry(changeLightToColorMaybe)(hueApp)
+  )

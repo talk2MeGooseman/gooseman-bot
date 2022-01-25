@@ -9,8 +9,7 @@ server.get('/', function respond(req, res, next) {
 })
 
 export const startServer = function startServer() {
-  server.listen(port, function() {
+  server.listen(port, function () {
     console.log('%s listening at %s', server.name, server.url)
   })
 }
-
