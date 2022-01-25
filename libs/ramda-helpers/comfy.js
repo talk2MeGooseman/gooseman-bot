@@ -37,6 +37,7 @@ export const onChat = ({ user, message, extra }) => {
   return pipeWhileNotEmptyOrFalse([
     cond([
       [equals('Kappa'), always('KappaPride')],
+      [equals('VoHiYo'), always('VoHiYo')],
       [
         T,
         pipeWhileNotEmpty([askQnAMaker, andThen(replace('{user}', `${user}`))]),

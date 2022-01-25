@@ -1,8 +1,8 @@
-import * as dotenv from 'dotenv'
+import 'dotenv/config'
 import * as hue from 'node-hue-api'
 import debugs from 'debug'
 const debug = debugs('app-hue')
-dotenv.config()
+
 const v3 = hue.v3
 
 // LightState fo r interacting with Lights

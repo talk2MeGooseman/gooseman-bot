@@ -3,11 +3,12 @@
         "es2021": true,
         "node": true
     },
-    "extends": "eslint:recommended",
+    "extends": ["eslint:recommended", "plugin:ramda/recommended"],
     "parserOptions": {
         "sourceType": "module",
         "ecmaVersion": 12
     },
+    "plugins": ["ramda"],
     "rules": {
         "indent": [
             "error",
@@ -28,6 +29,8 @@
         "no-unused-vars": [
             "error",
             { "argsIgnorePattern": "^_" }
-        ]
+        ],
+        "no-nonoctal-decimal-escape": "off",
+        "no-unsafe-optional-chaining": "off"
     }
 }

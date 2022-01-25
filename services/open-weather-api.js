@@ -1,9 +1,8 @@
-import * as dotenv from 'dotenv'
+import 'dotenv/config'
 import axios from 'axios'
 import debugs from 'debug'
 import ComfyJS from 'comfy.js'
 var debug = debugs('app-weather')
-dotenv.config()
 
 const openWeatherAxios = axios.create({
   baseURL: 'https://api.openweathermap.org/data/2.5/weather',

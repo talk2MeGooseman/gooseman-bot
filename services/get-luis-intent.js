@@ -1,9 +1,8 @@
-import * as dotenv from 'dotenv'
+import 'dotenv/config'
 import axios from 'axios'
 import * as R from 'ramda'
 import debugs from 'debug'
 const debug = debugs('app-LUIS')
-dotenv.config()
 
 export const INTENTS = {
   TURN_ON_COLOR: 'Turn.On.Color',

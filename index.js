@@ -1,9 +1,8 @@
 import ComfyJS from 'comfy.js'
-import * as dotenv from 'dotenv'
+import 'dotenv/config'
 import { onChat, onCommand } from './libs/ramda-helpers/comfy.js'
 import { startServer } from './server.js'
 import { App } from './services/hue-app.js'
-dotenv.config()
 
 let hueApp = new App()
 
