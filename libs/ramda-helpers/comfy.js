@@ -31,8 +31,8 @@ export const isIgnoredChatter = pipe(toLower, (user) =>
 export const onChat = ({ user, message, extra }) => {
   if (isIgnoredChatter(user)) return
 
-  console.log(formatChatMessage(message, extra))
-  console.log('----------')
+  //console.log(formatChatMessage(message, extra))
+  //console.log('----------')
 
   return pipeWhileNotEmptyOrFalse([
     cond([
