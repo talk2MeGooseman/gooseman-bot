@@ -38,20 +38,20 @@ export const App = class HueApp {
           debug('Error connecting')
         })
     } else {
-      remoteBootstrap
-        .connectWithTokens(
-          process.env.HUE_TOKEN,
-          process.env.HUE_REFRESH_TOKEN,
-          USERNAME
-        )
-        .catch((err) => {
-          debug('Failed to get a remote connection using existing tokens')
-          debug(err)
-        })
-        .then((api) => {
-          debug('Successfully connected using the existing OAuth tokens')
-          this.api = api
-        })
+      // remoteBootstrap
+      //   .connectWithTokens(
+      //     process.env.HUE_TOKEN,
+      //     process.env.HUE_REFRESH_TOKEN,
+      //     USERNAME
+      //   )
+      //   .catch((err) => {
+      //     debug('Failed to get a remote connection using existing tokens')
+      //     debug(err)
+      //   })
+      //   .then((api) => {
+      //     debug('Successfully connected using the existing OAuth tokens')
+      //     this.api = api
+      //   })
     }
   }
 
